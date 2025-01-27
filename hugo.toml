@@ -1,0 +1,4 @@
+baseURL = 'https://sinangncgl.github.io'
+languageCode = 'en-us'
+title = 'Sinan Gencoglu - Blog'
+theme = 'PaperMod'

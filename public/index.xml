@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Sinan Gencoglu - Blog</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on Sinan Gencoglu - Blog</description>
+    <generator>Hugo -- 0.142.0</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 27 Jan 2025 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Implementing an interpreter for Brainfuck language Part-1</title>
+      <link>http://localhost:1313/posts/brainfuckinterpreter/</link>
+      <pubDate>Mon, 27 Jan 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/brainfuckinterpreter/</guid>
+      <description>&lt;h1 id=&#34;building-a-brainfuck-interpreter-in-rust&#34;&gt;Building a Brainfuck Interpreter in Rust&lt;/h1&gt;
+&lt;p&gt;Since compilers are in my radar for a while, I think starting simple and iterating from there might be a go idea for me to fresh my memeory and learn something, also maybe you will learn something from it who knows!&lt;/p&gt;
+&lt;p&gt;Lets go :)&lt;/p&gt;
+&lt;p&gt;Brainfuck is a minimalist programming language known for its simplicity and esoteric nature. It consists of only eight commands (&lt;code&gt;&amp;gt;&lt;/code&gt;, &lt;code&gt;&amp;lt;&lt;/code&gt;, &lt;code&gt;+&lt;/code&gt;, &lt;code&gt;-&lt;/code&gt;, &lt;code&gt;.&lt;/code&gt;, &lt;code&gt;,&lt;/code&gt;, &lt;code&gt;[&lt;/code&gt;, &lt;code&gt;]&lt;/code&gt;) and operates on a simple memory array. Despite its simplicity, Brainfuck is Turing-complete and capable of expressing any computation.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

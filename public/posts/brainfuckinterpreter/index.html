@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>Implementing an interpreter for Brainfuck language Part-1 | Sinan Gencoglu - Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="Building a Brainfuck Interpreter in Rust
+Since compilers are in my radar for a while, I think starting simple and iterating from there might be a go idea for me to fresh my memeory and learn something, also maybe you will learn something from it who knows!
+Lets go :)
+Brainfuck is a minimalist programming language known for its simplicity and esoteric nature. It consists of only eight commands (&gt;, &lt;, &#43;, -, ., ,, [, ]) and operates on a simple memory array. Despite its simplicity, Brainfuck is Turing-complete and capable of expressing any computation.">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/brainfuckinterpreter/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.45e028aa8ce0961349adf411b013ee39406be2c0bc80d4ea3fc04555f7f4611a.css" integrity="sha256-ReAoqozglhNJrfQRsBPuOUBr4sC8gNTqP8BFVff0YRo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/brainfuckinterpreter/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Sinan Gencoglu - Blog (Alt + H)">Sinan Gencoglu - Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      Implementing an interpreter for Brainfuck language Part-1
+    </h1>
+    <div class="post-meta"><span title='2025-01-27 00:00:00 +0000 UTC'>January 27, 2025</span>
+
+</div>
+  </header> 
+  <div class="post-content"><h1 id="building-a-brainfuck-interpreter-in-rust">Building a Brainfuck Interpreter in Rust<a hidden class="anchor" aria-hidden="true" href="#building-a-brainfuck-interpreter-in-rust">#</a></h1>
+<p>Since compilers are in my radar for a while, I think starting simple and iterating from there might be a go idea for me to fresh my memeory and learn something, also maybe you will learn something from it who knows!</p>
+<p>Lets go :)</p>
+<p>Brainfuck is a minimalist programming language known for its simplicity and esoteric nature. It consists of only eight commands (<code>&gt;</code>, <code>&lt;</code>, <code>+</code>, <code>-</code>, <code>.</code>, <code>,</code>, <code>[</code>, <code>]</code>) and operates on a simple memory array. Despite its simplicity, Brainfuck is Turing-complete and capable of expressing any computation.</p>
+<hr>
+<h1 id="brainfuck-interpreter-code-in-rust">Brainfuck Interpreter Code in Rust<a hidden class="anchor" aria-hidden="true" href="#brainfuck-interpreter-code-in-rust">#</a></h1>
+<p>In this section, we will break down the code step by step, explaining each block in detail.</p>
+<hr>
+<h2 id="1-core-structure-token">1. Core structure Token<a hidden class="anchor" aria-hidden="true" href="#1-core-structure-token">#</a></h2>
+<h3 id="code">Code<a hidden class="anchor" aria-hidden="true" href="#code">#</a></h3>
+<p>To be honest, <code>Token</code> is a bit off in this topic because we are not actually dealing with tokens instead character but it does not really matter&hellip;</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">#[derive(Debug, PartialEq)]</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Token</span> {
+</span></span><span style="display:flex;"><span>    MoveRight, <span style="color:#75715e">// &gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    MoveLeft,  <span style="color:#75715e">// &lt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    Increment, <span style="color:#75715e">// +
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    Decrement, <span style="color:#75715e">// -
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    Output,    <span style="color:#75715e">// .
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    Input,     <span style="color:#75715e">// ,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    LoopStart, <span style="color:#75715e">// [
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    LoopEnd,   <span style="color:#75715e">// ]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h3 id="explanation">Explanation<a hidden class="anchor" aria-hidden="true" href="#explanation">#</a></h3>
+<p>The <code>Token</code> enum represents each of the eight commands in the Brainfuck language:</p>
+<ul>
+<li><code>MoveRight</code>: Corresponds to <code>&gt;</code> (move the pointer one cell to the right).</li>
+<li><code>MoveLeft</code>: Corresponds to <code>&lt;</code> (move the pointer one cell to the left).</li>
+<li><code>Increment</code>: Corresponds to <code>+</code> (increment the value at the pointer).</li>
+<li><code>Decrement</code>: Corresponds to <code>-</code> (decrement the value at the pointer).</li>
+<li><code>Output</code>: Corresponds to <code>.</code> (output the value at the pointer as a character).</li>
+<li><code>Input</code>: Corresponds to <code>,</code> (accept input from the user).</li>
+<li><code>LoopStart</code> and <code>LoopEnd</code>: Represent the start (<code>[</code>) and end (<code>]</code>) of loops.</li>
+</ul>
+<p>We derive <code>Debug</code> for debugging and <code>PartialEq</code> to allow comparison between tokens.</p>
+<hr>
+<h2 id="2-the-brainfuckinterpreter-struct">2. The <code>BrainFuckInterpreter</code> Struct<a hidden class="anchor" aria-hidden="true" href="#2-the-brainfuckinterpreter-struct">#</a></h2>
+<h3 id="code-1">Code<a hidden class="anchor" aria-hidden="true" href="#code-1">#</a></h3>
+<p>The brainfuck language has its own unique context, which basically a memory unit which we go over it like a roller coaster :D</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">BrainFuckInterpreter</span> {
+</span></span><span style="display:flex;"><span>    memory: Vec<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u8</span><span style="color:#f92672">&gt;</span>,
+</span></span><span style="display:flex;"><span>    pointer: <span style="color:#66d9ef">usize</span>,
+</span></span><span style="display:flex;"><span>    loop_mapping: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="explanation-1">Explanation<a hidden class="anchor" aria-hidden="true" href="#explanation-1">#</a></h3>
+<p>The <code>BrainFuckInterpreter</code> struct encapsulates the state of the Brainfuck interpreter:</p>
+<ul>
+<li><code>memory</code>: A vector of 30,000 bytes initialized to <code>0</code>. This serves as the Brainfuck memory array.</li>
+<li><code>pointer</code>: A <code>usize</code> value pointing to the current memory cell being manipulated.</li>
+<li><code>loop_mapping</code>: A <code>HashMap</code> mapping the indices of matching <code>[</code> and <code>]</code>. This allows efficient jumping between the start and end of loops.</li>
+</ul>
+<hr>
+<h2 id="3-initializing-the-interpreter">3. Initializing the Interpreter<a hidden class="anchor" aria-hidden="true" href="#3-initializing-the-interpreter">#</a></h2>
+<h3 id="code-2">Code<a hidden class="anchor" aria-hidden="true" href="#code-2">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#66d9ef">impl</span> BrainFuckInterpreter {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>() -&gt; <span style="color:#a6e22e">Self</span> {
+</span></span><span style="display:flex;"><span>        BrainFuckInterpreter {
+</span></span><span style="display:flex;"><span>            memory: <span style="color:#a6e22e">vec</span><span style="color:#f92672">!</span>[<span style="color:#ae81ff">0</span>; <span style="color:#ae81ff">30000</span>],
+</span></span><span style="display:flex;"><span>            pointer: <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>            loop_mapping: <span style="color:#a6e22e">HashMap</span>::new(),
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="explanation-2">Explanation<a hidden class="anchor" aria-hidden="true" href="#explanation-2">#</a></h3>
+<p>The <code>new</code> function initializes a <code>BrainFuckInterpreter</code> instance:</p>
+<ul>
+<li>The <code>memory</code> is initialized as a vector of 30,000 zeroed bytes.</li>
+<li>The <code>pointer</code> is set to the starting position (0).</li>
+<li><code>loop_mapping</code> is initialized as an empty <code>HashMap</code>.</li>
+</ul>
+<p>This creates a clean slate for the interpreter.</p>
+<hr>
+<h2 id="4-tokenizing-brainfuck-code">4. Tokenizing Brainfuck Code<a hidden class="anchor" aria-hidden="true" href="#4-tokenizing-brainfuck-code">#</a></h2>
+<h3 id="code-3">Code<a hidden class="anchor" aria-hidden="true" href="#code-3">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">tokenize</span>(<span style="color:#f92672">&amp;</span>self, code: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; Vec<span style="color:#f92672">&lt;</span>Token<span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>    code.chars().filter_map(<span style="color:#f92672">|</span>c<span style="color:#f92672">|</span> <span style="color:#66d9ef">match</span> c {
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;&gt;&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::MoveRight),
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;&lt;&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::MoveLeft),
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;+&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::Increment),
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;-&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::Decrement),
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;.&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::Output),
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;,&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::Input),
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;[&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::LoopStart),
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;]&#39;</span> <span style="color:#f92672">=&gt;</span> Some(Token::LoopEnd),
+</span></span><span style="display:flex;"><span>        _ <span style="color:#f92672">=&gt;</span> None,
+</span></span><span style="display:flex;"><span>    }).collect()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="explanation-3">Explanation<a hidden class="anchor" aria-hidden="true" href="#explanation-3">#</a></h3>
+<p>The <code>tokenize</code> method converts a Brainfuck program (a string) into a vector of <code>Token</code>s:</p>
+<ol>
+<li><code>code.chars()</code>: Iterates through each character in the input string.</li>
+<li><code>filter_map</code>: Filters out invalid characters and maps valid ones to <code>Token</code> variants.</li>
+<li><code>collect()</code>: Collects the filtered tokens into a vector.</li>
+</ol>
+<p>This ensures only valid Brainfuck commands are processed.</p>
+<hr>
+<h2 id="5-parsing-loops">5. Parsing Loops<a hidden class="anchor" aria-hidden="true" href="#5-parsing-loops">#</a></h2>
+<h3 id="code-4">Code<a hidden class="anchor" aria-hidden="true" href="#code-4">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">parse_loop</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, tokens: <span style="color:#66d9ef">&amp;</span>Vec<span style="color:#f92672">&lt;</span>Token<span style="color:#f92672">&gt;</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> loop_stack <span style="color:#f92672">=</span> Vec::new();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (i, token) <span style="color:#66d9ef">in</span> tokens.iter().enumerate() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">match</span> token {
+</span></span><span style="display:flex;"><span>            Token::LoopStart <span style="color:#f92672">=&gt;</span> loop_stack.push(i),
+</span></span><span style="display:flex;"><span>            Token::LoopEnd <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">let</span> start <span style="color:#f92672">=</span> loop_stack.pop().unwrap();
+</span></span><span style="display:flex;"><span>                self.loop_mapping.insert(start, i);
+</span></span><span style="display:flex;"><span>                self.loop_mapping.insert(i, start);
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>            _ <span style="color:#f92672">=&gt;</span> (),
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>loop_stack.is_empty() {
+</span></span><span style="display:flex;"><span>        panic!(<span style="color:#e6db74">&#34;Unmatched loop start&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="explanation-4">Explanation<a hidden class="anchor" aria-hidden="true" href="#explanation-4">#</a></h3>
+<p>This method maps matching <code>[</code> and <code>]</code> commands for efficient loop handling:</p>
+<ol>
+<li>
+<p><strong>Stack-Based Loop Matching</strong>:</p>
+<ul>
+<li>Use a stack (<code>loop_stack</code>) to track the indices of unmatched <code>[</code> tokens.</li>
+<li>When a <code>]</code> is encountered, the most recent unmatched <code>[</code> is popped, and a mapping is created.</li>
+</ul>
+</li>
+<li>
+<p><strong>Error Handling</strong>:</p>
+<ul>
+<li>If <code>loop_stack</code> is not empty after processing, it means there&rsquo;s an unmatched <code>[</code> token, so the program panics.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="6-executing-brainfuck-code">6. Executing Brainfuck Code<a hidden class="anchor" aria-hidden="true" href="#6-executing-brainfuck-code">#</a></h2>
+<h3 id="code-5">Code<a hidden class="anchor" aria-hidden="true" href="#code-5">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">execute</span><span style="color:#f92672">&lt;</span>W: <span style="color:#a6e22e">Write</span><span style="color:#f92672">&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, tokens: <span style="color:#66d9ef">&amp;</span>Vec<span style="color:#f92672">&lt;</span>Token<span style="color:#f92672">&gt;</span>, output: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> W) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">while</span> i <span style="color:#f92672">&lt;</span> tokens.len() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">match</span> tokens[i] {
+</span></span><span style="display:flex;"><span>            Token::MoveRight <span style="color:#f92672">=&gt;</span> self.pointer <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>            Token::MoveLeft <span style="color:#f92672">=&gt;</span> self.pointer <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>            Token::Increment <span style="color:#f92672">=&gt;</span> self.memory[self.pointer] <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>            Token::Decrement <span style="color:#f92672">=&gt;</span> self.memory[self.pointer] <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>            Token::Output <span style="color:#f92672">=&gt;</span> write!(output, <span style="color:#e6db74">&#34;{}&#34;</span>, self.memory[self.pointer] <span style="color:#66d9ef">as</span> <span style="color:#66d9ef">char</span>).unwrap(),
+</span></span><span style="display:flex;"><span>            Token::Input <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> buffer <span style="color:#f92672">=</span> [<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>                std::io::stdin().read_exact(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> buffer).unwrap();
+</span></span><span style="display:flex;"><span>                self.memory[self.pointer] <span style="color:#f92672">=</span> buffer[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>            Token::LoopStart <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">if</span> self.memory[self.pointer] <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>                    i <span style="color:#f92672">=</span> self.loop_mapping[<span style="color:#f92672">&amp;</span>i];
+</span></span><span style="display:flex;"><span>                }
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>            Token::LoopEnd <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">if</span> self.memory[self.pointer] <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>                    i <span style="color:#f92672">=</span> self.loop_mapping[<span style="color:#f92672">&amp;</span>i];
+</span></span><span style="display:flex;"><span>                }
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        i <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="explanation-5">Explanation<a hidden class="anchor" aria-hidden="true" href="#explanation-5">#</a></h3>
+<p>The <code>execute</code> method processes the Brainfuck tokens and performs the following:</p>
+<ol>
+<li>
+<p><strong>Pointer Manipulation</strong>:</p>
+<ul>
+<li><code>Token::MoveRight</code> and <code>Token::MoveLeft</code> adjust the memory pointer.</li>
+</ul>
+</li>
+<li>
+<p><strong>Memory Manipulation</strong>:</p>
+<ul>
+<li><code>Token::Increment</code> and <code>Token::Decrement</code> modify the byte at the current pointer.</li>
+</ul>
+</li>
+<li>
+<p><strong>I/O Operations</strong>:</p>
+<ul>
+<li><code>Token::Output</code> writes the current byte as a character to the output.</li>
+<li><code>Token::Input</code> reads a single byte of input and stores it at the current pointer.</li>
+</ul>
+</li>
+<li>
+<p><strong>Loop Handling</strong>:</p>
+<ul>
+<li>On <code>Token::LoopStart</code>, the interpreter jumps to the matching <code>]</code> if the byte at the pointer is <code>0</code>.</li>
+<li>On <code>Token::LoopEnd</code>, the interpreter jumps back to the matching <code>[</code> if the byte at the pointer is non-zero.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="7-testing-the-interpreter">7. Testing the Interpreter<a hidden class="anchor" aria-hidden="true" href="#7-testing-the-interpreter">#</a></h2>
+<h3 id="code-6">Code<a hidden class="anchor" aria-hidden="true" href="#code-6">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> code <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;++++[&gt;++++&lt;-]&gt;.&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> interpreter <span style="color:#f92672">=</span> BrainFuckInterpreter::new();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> tokens <span style="color:#f92672">=</span> interpreter.tokenize(code);
+</span></span><span style="display:flex;"><span>    interpreter.parse_loop(<span style="color:#f92672">&amp;</span>tokens);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> output <span style="color:#f92672">=</span> Vec::new();
+</span></span><span style="display:flex;"><span>    interpreter.execute(<span style="color:#f92672">&amp;</span>tokens, <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> output);
+</span></span><span style="display:flex;"><span>    println!(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{}</span><span style="color:#e6db74">&#34;</span>, String::from_utf8(output).unwrap());
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="explanation-6">Explanation<a hidden class="anchor" aria-hidden="true" href="#explanation-6">#</a></h3>
+<p>This test program does the following:</p>
+<ol>
+<li><code>++++</code>: Increment the first cell to <code>4</code>.</li>
+<li><code>[&gt;++++&lt;-]</code>: Create a loop that moves to the next cell, increments it by <code>4</code>, then decrements the first cell. This loop repeats until the first cell becomes <code>0</code>.</li>
+<li><code>&gt;.</code>: Move to the second cell and output its value (<code>16</code>).</li>
+</ol>
+<p>The program outputs the character corresponding to ASCII value <code>16</code>.</p>
+<p>So this was easy because we almost showed no effort buuuuut, its extremely usefull to digest this since it is a core concept!</p>
+<p>We will keep improving an my idea is to use <code>cranelift</code> to turn this into a compiler and optimize as much as we can.</p>
+<p>Code: <a href="https://github.com/SinanGncgl/brainfuck-interpreter">Part 1</a></p>
+<hr>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2025 <a href="http://localhost:1313/">Sinan Gencoglu - Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
