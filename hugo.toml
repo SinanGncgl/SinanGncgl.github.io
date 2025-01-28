@@ -4,4 +4,7 @@ title = 'Sinan Gencoglu - Blog'
 theme = 'PaperMod'
 
 [params]
-  googleAnalytics = "G-ER8M6KT8WP"
+  enableGoogleAnalytics = true
+
+[params.analytics.google]
+  siteID = "G-ER8M6KT8WP"
